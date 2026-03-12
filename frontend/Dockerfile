@@ -3,8 +3,7 @@ WORKDIR /app
 COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm install
 COPY frontend/ .
-ARG VITE_API_URL=/api
-ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_API_URL=/api
 RUN npm run build
 
 FROM nginx:alpine

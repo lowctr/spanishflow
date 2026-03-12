@@ -1,6 +1,21 @@
 import axios from 'axios'
 
-const BASE_URL = import.meta.env.VITE_API_URL || '/api'
+// Get API URL dynamically - in production, use window.location.origin + /api for current domain
+// or read from environment variable
+const getBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL
+  }
+  // In production on Render, construct the backend URL from frontend domain
+  if (window.location.hostname.includes('onrender.com')) {
+    // spanishflow-frontend.onrender.com → spanishflow-backend.onrender.com/api
+    const backendUrl = window.location.hostname.replace('frontend', 'backend')
+    return `https://${backendUrl}/api`
+  }
+  return '/api'
+}
+
+const BASE_URL = getBaseUrl()
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
