@@ -3,10 +3,9 @@ import { api } from '../api/client'
 import useStore from '../store/useStore'
 import { useTelegram } from '../hooks/useTelegram'
 import ProgressBar from '../components/ProgressBar'
-import StreakBadge from '../components/StreakBadge'
 
 export default function Stats() {
-  const { user, setPage } = useStore()
+  const { setPage } = useStore()
   const { haptic } = useTelegram()
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -20,15 +19,7 @@ export default function Stats() {
 
   if (loading) {
     return (
-      <div
-        style={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'var(--tg-theme-bg-color)',
-        }}
-      >
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--tg-theme-bg-color)' }}>
         <p style={{ color: 'var(--tg-theme-hint-color)' }}>Завантаження...</p>
       </div>
     )
@@ -41,288 +32,191 @@ export default function Stats() {
   const xp = stats?.xp || 0
   const completedToday = stats?.completed_today || 0
   const dailyGoal = stats?.daily_goal || 10
-
   const masteredPercent = Math.round((totalLearned / totalWords) * 100)
+  const levelName = getLevelName(xp)
+  const xpToNext = getXpToNext(xp)
+  const levelProgress = getLevelProgress(xp)
 
   return (
-    <div
-      style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '0 20px',
-        paddingTop: 'env(safe-area-inset-top, 16px)',
-        paddingBottom: 'max(env(safe-area-inset-bottom, 20px), 20px)',
-        overflow: 'auto',
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          marginBottom: 24,
-          marginTop: 8,
-        }}
-      >
+    <div style={{
+      flex: 1, display: 'flex', flexDirection: 'column',
+      overflow: 'auto', background: 'var(--tg-theme-bg-color, #f4f4f4)',
+    }}>
+
+      {/* Header gradient */}
+      <div style={{
+        background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+        borderRadius: '0 0 28px 28px',
+        padding: '0 20px 28px',
+        paddingTop: 'calc(env(safe-area-inset-top, 14px) + 14px)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+          <button
+            onClick={() => { haptic.impact('light'); setPage('home') }}
+            style={{
+              background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 10,
+              width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', fontSize: 18, color: '#fff',
+            }}
+          >←</button>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>
+            Статистика
+          </h1>
+        </div>
+
+        {/* Level badge */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 2 }}>Рівень</p>
+            <p style={{ fontSize: 22, fontWeight: 800, color: '#fff' }}>{levelName}</p>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 2 }}>До наступного</p>
+            <p style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>{xpToNext} XP</p>
+          </div>
+        </div>
+
+        {/* XP progress bar */}
+        <div style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 8, height: 8, overflow: 'hidden' }}>
+          <div style={{
+            width: `${levelProgress}%`, height: '100%',
+            background: '#fff', borderRadius: 8,
+            transition: 'width 0.6s ease',
+          }} />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{xp} XP</span>
+          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>⚡ {xp} всього</span>
+        </div>
+      </div>
+
+      <div style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+        {/* Streak + Today */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(251,146,60,0.15) 0%, rgba(239,68,68,0.1) 100%)',
+            border: '1.5px solid rgba(251,146,60,0.3)',
+            borderRadius: 18, padding: '18px 16px', textAlign: 'center',
+          }}>
+            <div style={{ fontSize: 36, marginBottom: 4 }}>🔥</div>
+            <div style={{ fontSize: 34, fontWeight: 900, color: '#f97316', letterSpacing: '-0.04em' }}>{streak}</div>
+            <div style={{ fontSize: 12, color: 'var(--tg-theme-hint-color)', marginTop: 2 }}>днів поспіль</div>
+          </div>
+
+          <div style={{
+            background: 'var(--tg-theme-secondary-bg-color, rgba(120,120,128,0.12))',
+            borderRadius: 18, padding: '18px 16px', textAlign: 'center',
+          }}>
+            <div style={{ fontSize: 36, marginBottom: 4 }}>📅</div>
+            <div style={{ fontSize: 34, fontWeight: 900, color: 'var(--tg-theme-text-color)', letterSpacing: '-0.04em' }}>{completedToday}</div>
+            <div style={{ fontSize: 12, color: 'var(--tg-theme-hint-color)', marginTop: 2 }}>з {dailyGoal} сьогодні</div>
+          </div>
+        </div>
+
+        {/* Mastery progress — main visual */}
+        <div style={{
+          background: 'var(--tg-theme-secondary-bg-color, rgba(120,120,128,0.12))',
+          borderRadius: 20, padding: '20px',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--tg-theme-text-color)' }}>Освоєно слів</p>
+            <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--tg-theme-hint-color)' }}>
+              {totalLearned} / {totalWords}
+            </p>
+          </div>
+
+          {/* Large percentage */}
+          <div style={{ textAlign: 'center', margin: '16px 0' }}>
+            <span style={{
+              fontSize: 56, fontWeight: 900,
+              letterSpacing: '-0.04em',
+              background: 'linear-gradient(135deg,#ff6b35,#e63946)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            }}>{masteredPercent}%</span>
+          </div>
+
+          {/* Segmented progress bar */}
+          <div style={{ position: 'relative', height: 12, borderRadius: 8, overflow: 'hidden', background: 'rgba(128,128,128,0.15)' }}>
+            <div style={{
+              position: 'absolute', left: 0, top: 0, bottom: 0,
+              width: `${Math.min(100, (totalLearned / totalWords) * 100)}%`,
+              background: 'linear-gradient(90deg,#ff6b35,#e63946)',
+              borderRadius: 8, transition: 'width 0.6s ease',
+            }} />
+            {/* in-progress overlay */}
+            <div style={{
+              position: 'absolute', left: `${(totalLearned / totalWords) * 100}%`, top: 0, bottom: 0,
+              width: `${Math.min(100 - (totalLearned / totalWords) * 100, (wordsInProgress / totalWords) * 100)}%`,
+              background: 'rgba(255,107,53,0.35)',
+              transition: 'all 0.6s ease',
+            }} />
+          </div>
+          <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <div style={{ width: 10, height: 10, borderRadius: 3, background: 'linear-gradient(135deg,#ff6b35,#e63946)' }} />
+              <span style={{ fontSize: 12, color: 'var(--tg-theme-hint-color)' }}>Вивчено: {totalLearned}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <div style={{ width: 10, height: 10, borderRadius: 3, background: 'rgba(255,107,53,0.35)', border: '1px solid rgba(255,107,53,0.5)' }} />
+              <span style={{ fontSize: 12, color: 'var(--tg-theme-hint-color)' }}>В процесі: {wordsInProgress}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Detail grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+          {[
+            { emoji: '📚', value: totalLearned, label: 'вивчено' },
+            { emoji: '🔄', value: wordsInProgress, label: 'в процесі' },
+            { emoji: '⚡', value: xp, label: 'XP' },
+          ].map((c) => (
+            <div key={c.label} style={{
+              background: 'var(--tg-theme-secondary-bg-color, rgba(120,120,128,0.12))',
+              borderRadius: 14, padding: '14px 10px', textAlign: 'center',
+            }}>
+              <div style={{ fontSize: 22, marginBottom: 4 }}>{c.emoji}</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--tg-theme-text-color)' }}>{c.value}</div>
+              <div style={{ fontSize: 11, color: 'var(--tg-theme-hint-color)', marginTop: 2 }}>{c.label}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ flex: 1, minHeight: 16 }} />
+
         <button
-          onClick={() => {
-            haptic.impact('light')
-            setPage('home')
-          }}
+          onClick={() => { haptic.impact('light'); setPage('home') }}
           style={{
-            background: 'var(--tg-theme-secondary-bg-color, #f5f5f5)',
-            border: 'none',
-            borderRadius: 10,
-            width: 36,
-            height: 36,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            fontSize: 18,
-            color: 'var(--tg-theme-text-color)',
+            width: '100%', padding: '16px', borderRadius: 16, fontSize: 16, fontWeight: 700,
+            background: 'linear-gradient(135deg,#7c3aed,#6d28d9)',
+            color: '#fff', border: 'none', cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(124,58,237,0.35)',
           }}
-        >
-          ←
-        </button>
-        <h1
-          style={{
-            fontSize: 22,
-            fontWeight: 800,
-            letterSpacing: '-0.03em',
-            color: 'var(--tg-theme-text-color)',
-          }}
-        >
-          Статистика
-        </h1>
+        >← На головну</button>
       </div>
-
-      {/* Streak + XP row */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-        <div
-          style={{
-            flex: 1,
-            background: 'linear-gradient(135deg, rgba(251,146,60,0.12) 0%, rgba(239,68,68,0.08) 100%)',
-            border: '1px solid rgba(251,146,60,0.2)',
-            borderRadius: 16,
-            padding: '16px',
-            textAlign: 'center',
-          }}
-        >
-          <div style={{ fontSize: 32, marginBottom: 4 }}>🔥</div>
-          <div
-            style={{
-              fontSize: 30,
-              fontWeight: 900,
-              color: '#f97316',
-              letterSpacing: '-0.04em',
-            }}
-          >
-            {streak}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--tg-theme-hint-color)', marginTop: 2 }}>
-            днів поспіль
-          </div>
-        </div>
-
-        <div
-          style={{
-            flex: 1,
-            background: 'linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(59,130,246,0.08) 100%)',
-            border: '1px solid rgba(99,102,241,0.2)',
-            borderRadius: 16,
-            padding: '16px',
-            textAlign: 'center',
-          }}
-        >
-          <div style={{ fontSize: 32, marginBottom: 4 }}>⚡</div>
-          <div
-            style={{
-              fontSize: 30,
-              fontWeight: 900,
-              color: 'var(--tg-theme-button-color, #6366f1)',
-              letterSpacing: '-0.04em',
-            }}
-          >
-            {xp}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--tg-theme-hint-color)', marginTop: 2 }}>
-            XP зароблено
-          </div>
-        </div>
-      </div>
-
-      {/* Progress to mastery */}
-      <div
-        style={{
-          background: 'var(--tg-theme-secondary-bg-color, #f5f5f5)',
-          borderRadius: 18,
-          padding: '20px',
-          marginBottom: 16,
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            marginBottom: 14,
-          }}
-        >
-          <div>
-            <p style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)', marginBottom: 2 }}>
-              Прогрес
-            </p>
-            <p
-              style={{
-                fontSize: 24,
-                fontWeight: 800,
-                color: 'var(--tg-theme-text-color)',
-                letterSpacing: '-0.03em',
-              }}
-            >
-              {masteredPercent}%
-            </p>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--tg-theme-text-color)' }}>
-              {totalLearned}
-            </p>
-            <p style={{ fontSize: 12, color: 'var(--tg-theme-hint-color)' }}>
-              з {totalWords} слів
-            </p>
-          </div>
-        </div>
-        <ProgressBar value={totalLearned} max={totalWords} height={10} color="#4ade80" />
-      </div>
-
-      {/* Detail stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
-        <div
-          style={{
-            background: 'var(--tg-theme-secondary-bg-color, #f5f5f5)',
-            borderRadius: 14,
-            padding: '16px',
-          }}
-        >
-          <p style={{ fontSize: 12, color: 'var(--tg-theme-hint-color)', marginBottom: 6 }}>
-            В процесі
-          </p>
-          <p
-            style={{
-              fontSize: 26,
-              fontWeight: 800,
-              color: 'var(--tg-theme-text-color)',
-              letterSpacing: '-0.03em',
-            }}
-          >
-            {wordsInProgress}
-          </p>
-          <p style={{ fontSize: 11, color: 'var(--tg-theme-hint-color)', marginTop: 2 }}>
-            активних слів
-          </p>
-        </div>
-
-        <div
-          style={{
-            background: 'var(--tg-theme-secondary-bg-color, #f5f5f5)',
-            borderRadius: 14,
-            padding: '16px',
-          }}
-        >
-          <p style={{ fontSize: 12, color: 'var(--tg-theme-hint-color)', marginBottom: 6 }}>
-            Сьогодні
-          </p>
-          <p
-            style={{
-              fontSize: 26,
-              fontWeight: 800,
-              color: 'var(--tg-theme-text-color)',
-              letterSpacing: '-0.03em',
-            }}
-          >
-            {completedToday}
-          </p>
-          <p style={{ fontSize: 11, color: 'var(--tg-theme-hint-color)', marginTop: 2 }}>
-            з {dailyGoal} цілі
-          </p>
-        </div>
-      </div>
-
-      {/* Level progress */}
-      <div
-        style={{
-          background: 'var(--tg-theme-secondary-bg-color, #f5f5f5)',
-          borderRadius: 16,
-          padding: '16px 18px',
-          marginBottom: 16,
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-          <div>
-            <p style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)', marginBottom: 2 }}>
-              Рівень
-            </p>
-            <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--tg-theme-text-color)' }}>
-              {getLevelName(xp)}
-            </p>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <p style={{ fontSize: 13, color: 'var(--tg-theme-hint-color)', marginBottom: 2 }}>
-              До наступного
-            </p>
-            <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--tg-theme-text-color)' }}>
-              {getXpToNext(xp)} XP
-            </p>
-          </div>
-        </div>
-        <ProgressBar
-          value={xp % 100}
-          max={100}
-          height={6}
-          color="var(--tg-theme-button-color, #6366f1)"
-        />
-      </div>
-
-      <div style={{ flex: 1 }} />
-
-      <button
-        onClick={() => {
-          haptic.impact('light')
-          setPage('home')
-        }}
-        style={{
-          width: '100%',
-          padding: '16px',
-          borderRadius: 14,
-          fontSize: 16,
-          fontWeight: 700,
-          background: 'var(--tg-theme-button-color, #3b82f6)',
-          color: 'var(--tg-theme-button-text-color, #fff)',
-          border: 'none',
-          cursor: 'pointer',
-        }}
-      >
-        На головну
-      </button>
     </div>
   )
 }
 
 function getLevelName(xp) {
   if (xp >= 1000) return 'Майстер 🏆'
-  if (xp >= 500) return 'Просунутий ⭐'
-  if (xp >= 200) return 'Учень 📚'
-  if (xp >= 50) return 'Початківець 🌱'
+  if (xp >= 500)  return 'Просунутий ⭐'
+  if (xp >= 200)  return 'Учень 📚'
+  if (xp >= 50)   return 'Початківець 🌱'
   return 'Новачок 🐣'
 }
 
 function getXpToNext(xp) {
-  const thresholds = [50, 200, 500, 1000]
-  for (const t of thresholds) {
+  for (const t of [50, 200, 500, 1000]) {
     if (xp < t) return t - xp
   }
   return 0
+}
+
+function getLevelProgress(xp) {
+  const levels = [[0, 50], [50, 200], [200, 500], [500, 1000]]
+  for (const [min, max] of levels) {
+    if (xp < max) return Math.round(((xp - min) / (max - min)) * 100)
+  }
+  return 100
 }

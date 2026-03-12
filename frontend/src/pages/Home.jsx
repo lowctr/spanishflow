@@ -283,9 +283,9 @@ export default function Home() {
           style={{
             width: '100%', padding: '13px',
             borderRadius: 14, fontSize: 14, fontWeight: 600,
-            background: 'transparent',
-            color: 'var(--tg-theme-hint-color)',
-            border: '1.5px solid var(--tg-theme-secondary-bg-color, #e5e5e5)',
+            background: 'var(--tg-theme-secondary-bg-color, #e8e8e8)',
+            color: 'var(--tg-theme-text-color)',
+            border: 'none',
             cursor: 'pointer',
           }}
         >
@@ -328,10 +328,11 @@ export default function Home() {
               placeholder="Або введи своє число"
               style={{
                 width: '100%', padding: '12px 14px', borderRadius: 12,
-                border: '1.5px solid var(--tg-theme-secondary-bg-color,#e5e5e5)',
+                border: '1.5px solid rgba(128,128,128,0.35)',
                 fontSize: 16, color: 'var(--tg-theme-text-color)',
-                background: 'var(--tg-theme-secondary-bg-color,#f5f5f5)',
+                background: 'var(--tg-theme-secondary-bg-color, rgba(120,120,128,0.12))',
                 boxSizing: 'border-box', marginBottom: 16,
+                outline: 'none',
               }}
             />
             <button

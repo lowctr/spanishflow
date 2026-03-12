@@ -25,6 +25,7 @@ export default function Onboarding() {
       const response = await api.authenticate(initData || 'dev_mode', selectedGoal)
       setUser(response.data)
       setOnboarded(true)
+      localStorage.setItem('sf_onboarded', '1')
       haptic.notification('success')
       setPage('home')
     } catch (err) {

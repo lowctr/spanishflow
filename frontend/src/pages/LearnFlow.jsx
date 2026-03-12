@@ -107,32 +107,45 @@ export default function LearnFlow() {
       if (isCorrect) {
         showFlash('correct')
         haptic.notification('success')
-        maybeShowEasterEgg(wordIndex)
 
-        const nextStage = stage + 1
-        if (nextStage >= 4) {
-          // Word complete
-          incrementCompleted()
-          const nextIndex = wordIndex + 1
-          if (nextIndex >= totalWords) {
-            clearSession()
-            setShowConfetti(true)
-            setSessionDone(true)
+        // Check if easter egg should fire NOW (before transition)
+        const willShowEgg = !easterEggFiredRef.current && wordIndex === easterEggIndexRef.current
+        if (willShowEgg) {
+          easterEggFiredRef.current = true
+          setEasterEggVisible(true)
+        }
+
+        // Delay transition so egg renders first on screen
+        const doTransition = () => {
+          const nextStage = stage + 1
+          if (nextStage >= 4) {
+            incrementCompleted()
+            const nextIndex = wordIndex + 1
+            if (nextIndex >= totalWords) {
+              clearSession()
+              setShowConfetti(true)
+              setSessionDone(true)
+            } else {
+              setSessionWordIndex(nextIndex)
+              setSessionStage(0)
+              setSessionExerciseOrder(buildExerciseOrder())
+              bump()
+            }
           } else {
-            setSessionWordIndex(nextIndex)
-            setSessionStage(0)
-            setSessionExerciseOrder(buildExerciseOrder())
+            setSessionStage(nextStage)
             bump()
           }
+        }
+
+        if (willShowEgg) {
+          setTimeout(doTransition, 350)
         } else {
-          setSessionStage(nextStage)
-          bump()
+          doTransition()
         }
       } else {
         showFlash('wrong')
         haptic.notification('error')
 
-        // Move current word to end of queue, restart from stage 0
         const next = [...sessionQueue]
         const [removed] = next.splice(wordIndex, 1)
         next.push({ ...removed, stage: 0 })
