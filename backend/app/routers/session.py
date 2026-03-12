@@ -1,4 +1,6 @@
 import random
+import httpx
+import json
 from datetime import datetime, date, timedelta
 from typing import List, Optional
 
@@ -345,3 +347,45 @@ async def get_review_session(
         ww = await build_word_with_progress(db, word, progress)
         review_words.append(ww)
     return review_words
+
+
+@router.get("/examples")
+async def get_examples(word: str):
+    """Get example sentences from Reverso Context API for a Spanish word."""
+    if not word or not word.strip():
+        return []
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            payload = {
+                "word": word.strip(),
+                "targetLanguage": "es",
+                "sourceLanguage": "es",
+            }
+            response = await client.post(
+                "https://context.reverso.net/bst-query-service",
+                json=payload,
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            # Extract results
+            results = data.get("results", [])
+            examples = []
+
+            for result in results[:3]:  # Top 3 examples
+                es_text = result.get("contextFull", "")
+                en_text = result.get("targetContextFull", "")
+
+                if es_text and en_text:
+                    examples.append({
+                        "text_es": es_text,
+                        "text_en": en_text,
+                    })
+
+            return examples
+    except Exception as e:
+        # Log error and return graceful fallback
+        import logging
+        logging.error(f"Failed to fetch examples for '{word}': {str(e)}")
+        return []

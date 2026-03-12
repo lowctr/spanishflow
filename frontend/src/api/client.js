@@ -61,6 +61,8 @@ export const api = {
 
   getArenaWords: () => apiClient.get('/session/arena'),
 
+  getExamples: (word) => apiClient.get('/session/examples?word=' + encodeURIComponent(word)),
+
   // Settings
   updateSettings: (dailyGoal) => apiClient.patch('/auth/settings', { daily_goal: dailyGoal }),
 
