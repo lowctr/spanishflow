@@ -5,7 +5,6 @@ import { useTelegram } from '../hooks/useTelegram'
 import StreakBadge from '../components/StreakBadge'
 import ProgressBar from '../components/ProgressBar'
 
-const EXTRA_BATCH = 10
 
 export default function Home() {
   const {
@@ -242,7 +241,7 @@ export default function Home() {
         </button>
 
         <button
-          onClick={() => handleLearn(EXTRA_BATCH)}
+          onClick={() => handleLearn(goal)}
           style={{
             width: '100%', padding: '14px',
             borderRadius: 14, fontSize: 15, fontWeight: 600,
@@ -255,7 +254,7 @@ export default function Home() {
           onTouchStart={(e) => (e.currentTarget.style.opacity = '0.7')}
           onTouchEnd={(e) => (e.currentTarget.style.opacity = '1')}
         >
-          ➕ Ще {EXTRA_BATCH} нових слів
+          ➕ Ще {goal} нових слів
         </button>
 
         <button

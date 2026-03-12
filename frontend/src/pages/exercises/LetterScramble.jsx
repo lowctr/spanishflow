@@ -94,6 +94,7 @@ export default function LetterScramble({ word, onNext }) {
     ...tileBase,
     background: 'var(--tg-theme-secondary-bg-color, #f0f0f0)',
     color: 'var(--tg-theme-text-color)',
+    border: '2px solid rgba(128,128,128,0.4)',
   }
 
   const answerTileStyle = (status) => ({
