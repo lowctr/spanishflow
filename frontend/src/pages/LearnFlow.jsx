@@ -1,63 +1,37 @@
-import React, { useState, useEffect, useCallback } from 'react'
-import useStore from '../store/useStore'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
+import useStore, { buildExerciseOrder } from '../store/useStore'
 import { api } from '../api/client'
 import { useTelegram } from '../hooks/useTelegram'
 import ProgressBar from '../components/ProgressBar'
+import EasterEgg from '../components/EasterEgg'
 import FlashCard from './exercises/FlashCard'
 import MultipleChoice from './exercises/MultipleChoice'
 import LetterScramble from './exercises/LetterScramble'
 import ListeningTest from './exercises/ListeningTest'
 
-const STAGE_NAMES = ['Картка', 'Вибір', 'Складання', 'Аудіо']
 const EXERCISE_TYPES = ['flashcard', 'multiple_choice', 'scramble', 'listening']
-
-// After flashcard (stage 0), shuffle remaining exercises for variety
-function buildExerciseOrder() {
-  const rest = [1, 2, 3]
-  for (let i = rest.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [rest[i], rest[j]] = [rest[j], rest[i]]
-  }
-  return [0, ...rest] // flashcard always first
-}
+const STAGE_LABELS = ['Картка', 'Вибір', 'Складання', 'Аудіо']
 
 function Confetti() {
-  const colors = ['#f87171', '#4ade80', '#60a5fa', '#fbbf24', '#a78bfa', '#f472b6']
-  const pieces = Array.from({ length: 48 }, (_, i) => i)
-
+  const colors = ['#f87171', '#4ade80', '#60a5fa', '#fbbf24', '#a78bfa', '#f472b6', '#ff6b35']
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        pointerEvents: 'none',
-        overflow: 'hidden',
-        zIndex: 100,
-      }}
-    >
-      {pieces.map((i) => {
-        const color = colors[i % colors.length]
-        const left = Math.random() * 100
-        const delay = Math.random() * 1.5
-        const size = 6 + Math.random() * 8
-        const duration = 2.5 + Math.random() * 1.5
-        return (
-          <div
-            key={i}
-            style={{
-              position: 'absolute',
-              left: `${left}%`,
-              top: -20,
-              width: size,
-              height: size * (Math.random() > 0.5 ? 1 : 2.5),
-              background: color,
-              borderRadius: Math.random() > 0.5 ? '50%' : 2,
-              animation: `confetti-fall ${duration}s ${delay}s ease-in forwards`,
-              opacity: 0,
-            }}
-          />
-        )
-      })}
+    <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 100 }}>
+      {Array.from({ length: 52 }, (_, i) => (
+        <div
+          key={i}
+          style={{
+            position: 'absolute',
+            left: `${Math.random() * 100}%`,
+            top: -20,
+            width: 7 + Math.random() * 7,
+            height: (7 + Math.random() * 7) * (Math.random() > 0.5 ? 1 : 2.2),
+            background: colors[i % colors.length],
+            borderRadius: Math.random() > 0.5 ? '50%' : 2,
+            animation: `confetti-fall ${2.5 + Math.random() * 1.5}s ${Math.random() * 1.5}s ease-in forwards`,
+            opacity: 0,
+          }}
+        />
+      ))}
     </div>
   )
 }
@@ -65,50 +39,64 @@ function Confetti() {
 function FlashFeedback({ type }) {
   if (!type) return null
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: type === 'correct' ? 'rgba(74,222,128,0.15)' : 'rgba(248,113,113,0.15)',
-        zIndex: 50,
-        pointerEvents: 'none',
-        animation: 'fadeIn 0.1s ease forwards',
-      }}
-    />
+    <div style={{
+      position: 'fixed', inset: 0,
+      background: type === 'correct' ? 'rgba(52,211,153,0.18)' : 'rgba(248,113,113,0.18)',
+      zIndex: 50, pointerEvents: 'none',
+      animation: 'fadeIn 0.1s ease forwards',
+    }} />
   )
 }
 
 export default function LearnFlow() {
   const {
-    sessionQueue,
-    setSessionQueue,
-    completedWords,
-    incrementCompleted,
-    setPage,
+    sessionQueue, setSessionQueue,
+    sessionWordIndex, setSessionWordIndex,
+    sessionStage, setSessionStage,
+    sessionExerciseOrder, setSessionExerciseOrder,
+    completedWords, incrementCompleted,
+    clearSession, setPage,
   } = useStore()
   const { haptic } = useTelegram()
 
-  const [wordIndex, setWordIndex] = useState(0)
-  const [stage, setStage] = useState(0)
-  const [exerciseOrder, setExerciseOrder] = useState(() => buildExerciseOrder())
   const [flash, setFlash] = useState(null)
   const [showConfetti, setShowConfetti] = useState(false)
   const [sessionDone, setSessionDone] = useState(false)
-  const [key, setKey] = useState(0)
+  const [renderKey, setRenderKey] = useState(0)
 
+  // Easter egg: triggered once per session at a random word index
+  const easterEggIndexRef = useRef(
+    sessionQueue.length > 0 ? Math.floor(Math.random() * sessionQueue.length) : -1
+  )
+  const [easterEggVisible, setEasterEggVisible] = useState(false)
+  const easterEggFiredRef = useRef(false)
+
+  const wordIndex = sessionWordIndex
+  const stage = sessionStage
+  const exerciseOrder = sessionExerciseOrder
   const totalWords = sessionQueue.length
   const currentWord = sessionQueue[wordIndex]
+
+  const bump = () => setRenderKey((k) => k + 1)
 
   const showFlash = (type) => {
     setFlash(type)
     setTimeout(() => setFlash(null), 300)
   }
 
+  const maybeShowEasterEgg = (idx) => {
+    if (easterEggFiredRef.current) return
+    if (idx === easterEggIndexRef.current) {
+      easterEggFiredRef.current = true
+      setEasterEggVisible(true)
+    }
+  }
+
   const handleAnswer = useCallback(
     async (isCorrect) => {
       if (!currentWord) return
-
-      const exerciseType = EXERCISE_TYPES[stage] || 'flashcard'
+      const exerciseIndex = exerciseOrder[stage] ?? stage
+      const exerciseType = EXERCISE_TYPES[exerciseIndex] || 'flashcard'
 
       try {
         await api.submitAnswer(currentWord.id, exerciseType, isCorrect, stage)
@@ -119,6 +107,7 @@ export default function LearnFlow() {
       if (isCorrect) {
         showFlash('correct')
         haptic.notification('success')
+        maybeShowEasterEgg(wordIndex)
 
         const nextStage = stage + 1
         if (nextStage >= 4) {
@@ -126,117 +115,76 @@ export default function LearnFlow() {
           incrementCompleted()
           const nextIndex = wordIndex + 1
           if (nextIndex >= totalWords) {
+            clearSession()
             setShowConfetti(true)
             setSessionDone(true)
           } else {
-            setWordIndex(nextIndex)
-            setStage(0)
-            setExerciseOrder(buildExerciseOrder()) // new random order for next word
-            setKey((k) => k + 1)
+            setSessionWordIndex(nextIndex)
+            setSessionStage(0)
+            setSessionExerciseOrder(buildExerciseOrder())
+            bump()
           }
         } else {
-          setStage(nextStage)
-          setKey((k) => k + 1)
+          setSessionStage(nextStage)
+          bump()
         }
       } else {
         showFlash('wrong')
         haptic.notification('error')
 
-        // Move current word to end of queue, reset stage and exercise order
+        // Move current word to end of queue, restart from stage 0
         const next = [...sessionQueue]
         const [removed] = next.splice(wordIndex, 1)
         next.push({ ...removed, stage: 0 })
         setSessionQueue(next)
-        if (wordIndex >= next.length) {
-          setWordIndex(0)
-        }
-        setStage(0)
-        setExerciseOrder(buildExerciseOrder())
-        setKey((k) => k + 1)
+        if (wordIndex >= next.length) setSessionWordIndex(0)
+        setSessionStage(0)
+        setSessionExerciseOrder(buildExerciseOrder())
+        bump()
       }
     },
-    [currentWord, stage, wordIndex, sessionQueue, totalWords, haptic, incrementCompleted, setSessionQueue]
+    [currentWord, stage, wordIndex, exerciseOrder, sessionQueue, totalWords, haptic,
+     incrementCompleted, setSessionQueue, setSessionWordIndex, setSessionStage, setSessionExerciseOrder, clearSession]
   )
 
   const renderExercise = () => {
     if (!currentWord) return null
-
     const exerciseIndex = exerciseOrder[stage] ?? stage
     switch (exerciseIndex) {
-      case 0:
-        return <FlashCard key={`fc-${key}`} word={currentWord} onNext={handleAnswer} />
-      case 1:
-        return <MultipleChoice key={`mc-${key}`} word={currentWord} onNext={handleAnswer} mode="en-to-es" />
-      case 2:
-        return <LetterScramble key={`ls-${key}`} word={currentWord} onNext={handleAnswer} />
-      case 3:
-        return <ListeningTest key={`lt-${key}`} word={currentWord} onNext={handleAnswer} />
-      default:
-        return null
+      case 0: return <FlashCard key={`fc-${renderKey}`} word={currentWord} onNext={handleAnswer} />
+      case 1: return <MultipleChoice key={`mc-${renderKey}`} word={currentWord} onNext={handleAnswer} mode="en-to-es" />
+      case 2: return <LetterScramble key={`ls-${renderKey}`} word={currentWord} onNext={handleAnswer} />
+      case 3: return <ListeningTest key={`lt-${renderKey}`} word={currentWord} onNext={handleAnswer} />
+      default: return null
     }
   }
 
   if (sessionDone) {
     return (
-      <div
-        style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '0 24px',
-          textAlign: 'center',
-        }}
-      >
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 24px', textAlign: 'center', background: 'var(--tg-theme-bg-color,#f4f4f4)' }}>
         {showConfetti && <Confetti />}
-        <div style={{ fontSize: 72, marginBottom: 16 }}>🎉</div>
-        <h2
-          style={{
-            fontSize: 28,
-            fontWeight: 800,
-            letterSpacing: '-0.03em',
-            color: 'var(--tg-theme-text-color)',
-            marginBottom: 8,
-          }}
-        >
+        <div style={{ fontSize: 80, marginBottom: 16 }}>🎉</div>
+        <h2 style={{ fontSize: 28, fontWeight: 900, letterSpacing: '-0.03em', color: 'var(--tg-theme-text-color)', marginBottom: 8 }}>
           Чудова робота!
         </h2>
         <p style={{ fontSize: 16, color: 'var(--tg-theme-hint-color)', marginBottom: 32 }}>
-          Ви завершили сеанс навчання
+          Сеанс навчання завершено
         </p>
-        <div
-          style={{
-            background: 'var(--tg-theme-secondary-bg-color, #f5f5f5)',
-            borderRadius: 18,
-            padding: '24px 28px',
-            marginBottom: 32,
-            width: '100%',
-          }}
-        >
-          <div style={{ fontSize: 40, fontWeight: 800, color: 'var(--tg-theme-text-color)', marginBottom: 4 }}>
+        <div className="sf-card" style={{ marginBottom: 32, width: '100%', textAlign: 'center' }}>
+          <div style={{ fontSize: 48, fontWeight: 900, color: 'var(--accent,#ff6b35)', marginBottom: 4 }}>
             {completedWords}
           </div>
-          <div style={{ fontSize: 15, color: 'var(--tg-theme-hint-color)' }}>
-            слів вивчено сьогодні
-          </div>
+          <div style={{ fontSize: 15, color: 'var(--tg-theme-hint-color)' }}>слів вивчено сьогодні</div>
         </div>
         <button
           onClick={() => setPage('home')}
           style={{
-            width: '100%',
-            padding: '17px',
-            borderRadius: 14,
-            fontSize: 17,
-            fontWeight: 700,
-            background: 'var(--tg-theme-button-color, #3b82f6)',
-            color: 'var(--tg-theme-button-text-color, #fff)',
-            border: 'none',
-            cursor: 'pointer',
+            width: '100%', padding: '17px', borderRadius: 16, fontSize: 17, fontWeight: 700,
+            background: 'var(--accent-gradient,linear-gradient(135deg,#ff6b35,#e63946))',
+            color: '#fff', border: 'none', cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(230,57,70,0.35)',
           }}
-        >
-          На головну
-        </button>
+        >На головну</button>
       </div>
     )
   }
@@ -249,70 +197,38 @@ export default function LearnFlow() {
     )
   }
 
-  const progressValue = wordIndex + (stage / 4)
+  const progressValue = wordIndex + stage / 4
 
   return (
-    <div
-      style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        paddingTop: 'env(safe-area-inset-top, 12px)',
-        paddingBottom: 'max(env(safe-area-inset-bottom, 16px), 16px)',
-        overflow: 'hidden',
-      }}
-    >
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingTop: 'env(safe-area-inset-top,12px)', paddingBottom: 'max(env(safe-area-inset-bottom,16px),16px)', overflow: 'hidden', background: 'var(--tg-theme-bg-color,#f4f4f4)' }}>
       <FlashFeedback type={flash} />
+      {easterEggVisible && <EasterEgg onDone={() => setEasterEggVisible(false)} />}
 
       {/* Header */}
-      <div style={{ padding: '12px 20px 16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+      <div style={{ padding: '12px 20px 12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
           <button
             onClick={() => setPage('home')}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '4px',
-              color: 'var(--tg-theme-hint-color)',
-              fontSize: 22,
-              lineHeight: 1,
-              flexShrink: 0,
-            }}
-          >
-            ✕
-          </button>
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--tg-theme-hint-color)', fontSize: 20, lineHeight: 1, flexShrink: 0 }}
+          >✕</button>
           <ProgressBar value={progressValue} max={totalWords} height={6} />
-          <span
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: 'var(--tg-theme-hint-color)',
-              flexShrink: 0,
-            }}
-          >
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--tg-theme-hint-color)', flexShrink: 0 }}>
             {wordIndex + 1}/{totalWords}
           </span>
         </div>
 
-        {/* Stage indicator */}
+        {/* Stage dots */}
         <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
-          {STAGE_NAMES.map((name, i) => (
-            <div
-              key={i}
-              style={{
-                height: 3,
-                flex: 1,
-                borderRadius: 2,
-                background:
-                  i < stage
-                    ? 'var(--color-correct)'
-                    : i === stage
-                    ? 'var(--tg-theme-button-color, #3b82f6)'
-                    : 'var(--tg-theme-secondary-bg-color, #e5e5e5)',
-                transition: 'background 0.3s ease',
-              }}
-            />
+          {STAGE_LABELS.map((_, i) => (
+            <div key={i} style={{
+              height: 3, flex: 1, borderRadius: 2,
+              background: i < stage
+                ? 'var(--color-correct,#34d399)'
+                : i === stage
+                ? 'var(--accent,#ff6b35)'
+                : 'var(--tg-theme-secondary-bg-color,#e5e5e5)',
+              transition: 'background 0.3s ease',
+            }} />
           ))}
         </div>
       </div>
