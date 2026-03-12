@@ -7,10 +7,11 @@ import EasterEgg from '../components/EasterEgg'
 import FlashCard from './exercises/FlashCard'
 import MultipleChoice from './exercises/MultipleChoice'
 import LetterScramble from './exercises/LetterScramble'
+import ContextExercise from './exercises/ContextExercise'
 import ListeningTest from './exercises/ListeningTest'
 
-const EXERCISE_TYPES = ['flashcard', 'multiple_choice', 'scramble', 'listening']
-const STAGE_LABELS = ['Картка', 'Вибір', 'Складання', 'Аудіо']
+const EXERCISE_TYPES = ['flashcard', 'multiple_choice', 'context', 'listening']
+const STAGE_LABELS = ['Картка', 'Вибір', 'Контекст', 'Аудіо']
 
 function Confetti() {
   const colors = ['#f87171', '#4ade80', '#60a5fa', '#fbbf24', '#a78bfa', '#f472b6', '#ff6b35']
@@ -163,10 +164,12 @@ export default function LearnFlow() {
   const renderExercise = () => {
     if (!currentWord) return null
     const exerciseIndex = exerciseOrder[stage] ?? stage
+    const nextWord = wordIndex + 1 < totalWords ? sessionQueue[wordIndex + 1] : null
     switch (exerciseIndex) {
       case 0: return <FlashCard key={`fc-${renderKey}`} word={currentWord} onNext={handleAnswer} />
       case 1: return <MultipleChoice key={`mc-${renderKey}`} word={currentWord} onNext={handleAnswer} mode="en-to-es" />
-      case 2: return <LetterScramble key={`ls-${renderKey}`} word={currentWord} onNext={handleAnswer} />
+      case 2: return <ContextExercise key={`ctx-${renderKey}`} word={currentWord} nextWord={nextWord} onNext={handleAnswer} />
+      // case 2: return <LetterScramble key={`ls-${renderKey}`} word={currentWord} onNext={handleAnswer} /> // Reserved for future
       case 3: return <ListeningTest key={`lt-${renderKey}`} word={currentWord} onNext={handleAnswer} />
       default: return null
     }

@@ -1,4 +1,6 @@
 import random
+import httpx
+import json
 from datetime import datetime, date, timedelta
 from typing import List, Optional
 
@@ -345,3 +347,64 @@ async def get_review_session(
         ww = await build_word_with_progress(db, word, progress)
         review_words.append(ww)
     return review_words
+
+
+@router.get("/examples")
+async def get_examples(word: str):
+    """Get example sentences from Tatoeba open corpus for a Spanish word."""
+    import logging
+    logger = logging.getLogger(__name__)
+
+    if not word or not word.strip():
+        return []
+
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(
+                "https://tatoeba.org/api_v0/search",
+                params={
+                    "from": "spa",
+                    "to": "eng",
+                    "query": word.strip(),
+                    "limit": 5,
+                },
+                headers={"Accept": "application/json"},
+                follow_redirects=True,
+            )
+
+            logger.info(f"Tatoeba API status for '{word}': {response.status_code}")
+
+            if response.status_code != 200:
+                logger.warning(f"Tatoeba returned {response.status_code} for '{word}'")
+                return []
+
+            data = response.json()
+            results = data.get("results", [])
+            logger.info(f"Tatoeba returned {len(results)} results for '{word}'")
+
+            examples = []
+            for item in results:
+                es_text = item.get("text", "")
+                translations = item.get("translations", [])
+                # translations is a list of lists
+                en_text = ""
+                for group in translations:
+                    for t in group:
+                        if t.get("lang") == "eng":
+                            en_text = t.get("text", "")
+                            break
+                    if en_text:
+                        break
+
+                if es_text and en_text:
+                    examples.append({"text_es": es_text, "text_en": en_text})
+                    if len(examples) >= 3:
+                        break
+
+            logger.info(f"Returning {len(examples)} formatted examples for '{word}'")
+            return examples
+
+    except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.error(f"Failed to fetch examples for '{word}': {str(e)}")
+        return []
