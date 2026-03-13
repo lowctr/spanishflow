@@ -165,7 +165,7 @@ export default function LearnFlow() {
     if (!currentWord) return null
     const exerciseIndex = exerciseOrder[stage] ?? stage
     const nextWord = wordIndex + 1 < totalWords ? sessionQueue[wordIndex + 1] : null
-    const wordLength = currentWord.word_en.length
+    const wordLength = currentWord.word_es.length
 
     switch (exerciseIndex) {
       case 0: return <FlashCard key={`fc-${renderKey}`} word={currentWord} onNext={handleAnswer} />
