@@ -33,6 +33,7 @@ app.include_router(session.router)
 app.include_router(stats.router)
 
 
+@app.get("/")
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
