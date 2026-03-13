@@ -165,12 +165,15 @@ export default function LearnFlow() {
     if (!currentWord) return null
     const exerciseIndex = exerciseOrder[stage] ?? stage
     const nextWord = wordIndex + 1 < totalWords ? sessionQueue[wordIndex + 1] : null
+    const wordLength = currentWord.word_en.length
+
     switch (exerciseIndex) {
       case 0: return <FlashCard key={`fc-${renderKey}`} word={currentWord} onNext={handleAnswer} />
       case 1: return <MultipleChoice key={`mc-${renderKey}`} word={currentWord} onNext={handleAnswer} mode="en-to-es" />
       case 2: return <ContextExercise key={`ctx-${renderKey}`} word={currentWord} nextWord={nextWord} onNext={handleAnswer} />
-      // case 2: return <LetterScramble key={`ls-${renderKey}`} word={currentWord} onNext={handleAnswer} /> // Reserved for future
-      case 3: return <ListeningTest key={`lt-${renderKey}`} word={currentWord} onNext={handleAnswer} />
+      case 3: return wordLength >= 6
+        ? <LetterScramble key={`ls-${renderKey}`} word={currentWord} onNext={handleAnswer} />
+        : <ListeningTest key={`lt-${renderKey}`} word={currentWord} onNext={handleAnswer} />
       default: return null
     }
   }

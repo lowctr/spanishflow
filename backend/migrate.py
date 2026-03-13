@@ -88,6 +88,13 @@ async def main():
         )
         count = await conn.fetchval("SELECT COUNT(*) FROM words")
         print(f"Successfully inserted {count} words into PostgreSQL")
+
+        # Reset user progress (one-time reset)
+        try:
+            await conn.execute("DELETE FROM user_progress")
+            print("User progress reset successfully")
+        except Exception as e:
+            print(f"Note: Could not reset user_progress: {e}")
     finally:
         await conn.close()
 
